@@ -95,7 +95,7 @@ Artifacts created:
 ```powershell
 python demo.py
 ```
-Open the local URL (e.g., http://127.0.0.1:7860). The dashboard provides:
+Open the local URL (e.g., http://127.0.0.1:7861). The dashboard provides:
 - Readable route names from the dataset (e.g., "Mansoura -> Alexandria (Bus) - [ID: R-1005]")
 - Date picker + start/end hour window selection
 - Plotly forecast with uncertainty
