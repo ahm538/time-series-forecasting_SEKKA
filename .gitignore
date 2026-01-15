@@ -1,0 +1,14 @@
+# Python System Files
+__pycache__/
+*.py[cod]
+.venv/
+.env
+
+# Project Specific
+sekka_outputs/
+# Models (Optional: If they are huge, ignore them. If small, keep them for demo)
+# models/*.joblib
+
+# OS Files
+.DS_Store
+Thumbs.db

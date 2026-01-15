@@ -1,0 +1,1 @@
+{"route_id": "R-2278", "last_ds": "2025-12-31T23:00:00", "regressors": ["is_public_holiday", "is_summer_peak", "school_Term", "school_Exam", "school_Holiday"]}
