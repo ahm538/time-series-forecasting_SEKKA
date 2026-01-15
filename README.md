@@ -8,7 +8,7 @@
 
 ---
 
-## 📌 Executive Summary
+##  Executive Summary
 Sekka is a transportation "Super App" focused on Mansoura, Egypt, and its connections to surrounding governorates (Alexandria, Damietta, Dakahlia (internal), Sharqia, Gharbia). Sekka tackles the day-to-day unpredictability of microbus and bus services by forecasting route congestion levels up to 7 days ahead. This enables better trip planning, dynamic pricing, fleet scheduling, and improved commuter experience.
 
 - Forecast horizon: up to 7 days (hourly resolution)
@@ -17,7 +17,7 @@ Sekka is a transportation "Super App" focused on Mansoura, Egypt, and its connec
 
 ---
 
-## 🧠 AI Logic & Egyptian Context
+##  AI Logic & Egyptian Context
 Sekka leverages Facebook Prophet (a robust additive time series model) extended with external regressors to capture Egypt-specific patterns:
 
 - Multiple seasonalities
@@ -49,7 +49,7 @@ High-fidelity synthetic dataset: `data/sekka_mansoura_synthetic_dataset_2years_v
 
 ---
 
-## 🏗️ Project Structure
+##  Project Structure
 ```
 project_root/
 ├── data/                   # CSV files (place dataset here)
@@ -68,7 +68,7 @@ project_root/
 
 ---
 
-## ⚙️ Installation & Usage
+##  Installation & Usage
 The following steps assume Windows PowerShell; adjust accordingly for your OS.
 
 ### 1) Create and activate a virtual environment
@@ -128,7 +128,7 @@ Example response (truncated):
 
 ---
 
-## 🚦 Interpreting Results (Traffic Light System)
+##  Interpreting Results (Traffic Light System)
 The AI output (0–10) is mapped to human-friendly statuses for decision-making:
 
 | Score | Color | Status | Arabic | Meaning |
@@ -142,7 +142,7 @@ This mapping is implemented in `src/inference.py: interpret_congestion()` and su
 
 ---
 
-## 🔬 Technical Notes
+##  Technical Notes
 - Prophet is configured with daily, weekly, and yearly seasonalities and tuned Fourier orders to emphasize intraday patterns (M-Shape) and weekly effects.
 - Country holidays (Egypt) are added when available; otherwise, a custom holiday signal is used.
 - Academic calendar is encoded via one-hot regressors for `Term`, `Exam`, and `Holiday` phases.
@@ -150,12 +150,12 @@ This mapping is implemented in `src/inference.py: interpret_congestion()` and su
 
 ---
 
-## 🧪 Evaluation
+##  Evaluation
 - Training uses the first ~23 months; evaluation is performed on the last 30 days (MAE and RMSE). Results per route are captured in `training_report.csv`.
 
 ---
 
-## 📜 License & Acknowledgments
+##  License & Acknowledgments
 - Built by the Class of 2026, Faculty of Computers & Information, Mansoura University.
 - Facebook Prophet is developed by Meta; FastAPI by Sebastián Ramírez.
 

@@ -129,27 +129,53 @@ def predict_ui(readable_choice: str, selected_date, start_hour: int, end_hour: i
     if model is None or meta is None:
         raise gr.Error(f"Model not found for route {route_id}. Train first.")
 
-    last_ds = pd.Timestamp(meta["last_ds"])  # timezone-naive consistent with training
+    # Normalize last_ds to timezone-naive for safe comparison
+    last_ds = pd.Timestamp(meta["last_ds"])  # may be tz-aware or naive
+    try:
+        if last_ds.tzinfo is not None:
+            last_ds = last_ds.tz_localize(None)
+    except Exception:
+        # If tz conversions fail, fallback to naive representation
+        last_ds = pd.Timestamp(str(last_ds)).tz_localize(None)
 
-    # User-selected end datetime
-    # selected_date from gr.Date is like 'YYYY-MM-DD' or date object
-    if isinstance(selected_date, str):
-        sel_date = pd.to_datetime(selected_date).date()
+    # User-selected date from Gradio DateTime can be numeric (unix seconds), string, or datetime
+    if isinstance(selected_date, (int, float)):
+        sel_ts = pd.to_datetime(selected_date, unit='s')
+    elif isinstance(selected_date, str):
+        sel_ts = pd.to_datetime(selected_date)
     else:
-        sel_date = pd.to_datetime(selected_date).date()
+        sel_ts = pd.to_datetime(selected_date)
+
+    # Drop timezone to keep comparisons consistent
+    try:
+        if getattr(sel_ts, 'tzinfo', None) is not None:
+            sel_ts = sel_ts.tz_localize(None)
+    except Exception:
+        sel_ts = pd.Timestamp(str(sel_ts)).tz_localize(None)
+
+    sel_date = sel_ts.date()
+    # Construct window bounds for the selected date (naive)
     end_dt = pd.Timestamp(sel_date) + pd.Timedelta(hours=int(end_hour))
     start_dt = pd.Timestamp(sel_date) + pd.Timedelta(hours=int(start_hour))
 
     # Compute needed hours ahead from last_ds to end_dt
     delta_hours = (end_dt - last_ds).total_seconds() / 3600.0
     hours_needed = int(max(0, ceil(delta_hours)))
-    if hours_needed == 0:
+    cutoff_html = f"<div style='padding:8px 12px;border:1px solid #e0e0e0;border-radius:6px;background:#f1f3f5;display:inline-block;'>Model trained up to: <b>{last_ds.strftime('%Y-%m-%d %H:%M')}</b></div>"
+
+    if hours_needed <= 0:
         # Error: requested end time not after last training timestamp
+        err = (
+            "<div style='padding:12px;border:1px solid #ccc;border-radius:6px;background:#fff3cd;'>"
+            f"You selected <b>{sel_date} {int(end_hour):02d}:00</b>, but the model requires a date after <b>{last_ds.strftime('%Y-%m-%d %H:%M')}</b>."
+            "</div>"
+        )
         return (
             None,
-            "<div style='padding:12px;border:1px solid #ccc;border-radius:6px;background:#fff3cd;'>Selected end time is not after model's last training time. Please pick a later date.</div>",
+            err,
             None,
             None,
+            cutoff_html,
         )
 
     # Predict enough horizon
@@ -159,12 +185,18 @@ def predict_ui(readable_choice: str, selected_date, start_hour: int, end_hour: i
     mask = (df_future["ds"] >= start_dt) & (df_future["ds"] <= end_dt)
     df_window = df_future.loc[mask].copy()
     if df_window.empty:
-        # Error: no data in requested window
+        # Error: no data in requested window (likely still before cutoff)
+        err = (
+            "<div style='padding:12px;border:1px solid #ccc;border-radius:6px;background:#fff3cd;'>"
+            f"Historical data not available in inference mode, please select a date after <b>{last_ds.strftime('%Y-%m-%d %H:%M')}</b>."
+            "</div>"
+        )
         return (
             None,
-            "<div style='padding:12px;border:1px solid #ccc;border-radius:6px;background:#fff3cd;'>No data available for the selected window. Try a later time.</div>",
+            err,
             None,
             None,
+            cutoff_html,
         )
 
     # Summary: average congestion and interpreted status
@@ -184,8 +216,8 @@ def predict_ui(readable_choice: str, selected_date, start_hour: int, end_hour: i
 
     fig = make_plot(df_window)
 
-    # Also return the numeric average and status HTML for separate components if desired
-    return fig, summary_html, avg_level, f"<span style='color:{color}; font-weight:600;'>{status}</span>"
+    # Return figure, summary HTML, average, status HTML, and cutoff HTML
+    return fig, summary_html, avg_level, f"<span style='color:{color}; font-weight:600;'>{status}</span>", cutoff_html
 
 
 with gr.Blocks(title="Sekka Admin Dashboard - Congestion Forecast") as demo:
@@ -214,14 +246,15 @@ with gr.Blocks(title="Sekka Admin Dashboard - Congestion Forecast") as demo:
     plot_out = gr.Plot(label="Forecast (Selected Window)")
     level_out = gr.Number(label="Average Congestion (0-10)")
     status_out = gr.HTML(label="Status")
+    cutoff_out = gr.HTML(label="Model Cutoff")
 
     run_btn = gr.Button("Run Forecast")
     run_btn.click(
         fn=predict_ui,
         inputs=[route_dropdown, date_picker, start_slider, end_slider, gr.State(readable_to_id)],
-        outputs=[plot_out, summary_html, level_out, status_out],
+        outputs=[plot_out, summary_html, level_out, status_out, cutoff_out],
         api_name="predict_window",
     )
 
 if __name__ == "__main__":
-    demo.launch(server_name="0.0.0.0", server_port=7860)
+    demo.launch(server_name="127.0.0.1", server_port=7861)

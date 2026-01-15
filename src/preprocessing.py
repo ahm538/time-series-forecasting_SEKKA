@@ -33,7 +33,8 @@ def derive_is_summer_peak(ts: pd.Timestamp) -> int:
 def derive_is_public_holiday(ts: pd.Timestamp) -> int:
     try:
         import holidays  # type: ignore
-        eg_holidays = holidays.country_holidays("EG")
+        # Restrict holiday calendar to the specific year of the timestamp
+        eg_holidays = holidays.country_holidays("EG", years=ts.year)
         return 1 if ts.date() in eg_holidays else 0
     except Exception:
         return 0
@@ -92,10 +93,6 @@ def build_prophet() -> Prophet:
     )
     for reg in REG_COLS:
         m.add_regressor(reg)
-    try:
-        m.add_country_holidays(country_name="EG")
-    except Exception:
-        pass
     m.add_seasonality(name="daily", period=1, fourier_order=config.DAILY_FOURIER)
     m.add_seasonality(name="weekly", period=7, fourier_order=config.WEEKLY_FOURIER)
     return m

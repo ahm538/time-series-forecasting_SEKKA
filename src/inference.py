@@ -51,7 +51,9 @@ def predict_future(route_id: str, future_hours: int) -> pd.DataFrame:
     future_df = make_future_with_regressors(last_ds=last_ds, periods=future_hours, freq="H")
     forecast = model.predict(future_df)
     out = forecast[["ds", "yhat", "yhat_lower", "yhat_upper"]].copy()
-    out["yhat"] = np.clip(out["yhat"], config.Y_MIN, config.Y_MAX)
-    out["yhat_lower"] = np.clip(out["yhat_lower"], config.Y_MIN, config.Y_MAX)
-    out["yhat_upper"] = np.clip(out["yhat_upper"], config.Y_MIN, config.Y_MAX)
+    # Calibration factor to compensate under-prediction of peaks
+    CAL = 1.25
+    out["yhat"] = np.clip(out["yhat"] * CAL, config.Y_MIN, config.Y_MAX)
+    out["yhat_lower"] = np.clip(out["yhat_lower"] * CAL, config.Y_MIN, config.Y_MAX)
+    out["yhat_upper"] = np.clip(out["yhat_upper"] * CAL, config.Y_MIN, config.Y_MAX)
     return out
